@@ -1,6 +1,7 @@
 import cors from "cors";
 import { connectDB } from "./db/connection.js";
 import authRouter from "./module/auth/auth.controller.js";
+import userRouter from "./module/user/user.controller.js";
 export default function bootsrap(app, express) {
 
     app.use(express.json());
@@ -10,6 +11,7 @@ export default function bootsrap(app, express) {
     }));
 
     app.use("/auth", authRouter)
+    app.use("/user", userRouter)
     connectDB();
     // err handler
     app.use((err, req, res, next) => {

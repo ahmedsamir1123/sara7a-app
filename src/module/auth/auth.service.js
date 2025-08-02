@@ -113,8 +113,8 @@ export const login = async (req, res, next) => {
 
 // forget password
 export const forgetpassword = async (req, res, next) => {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
+    const { email, phone } = req.body;
+    const user = await User.findOne({ $or: [{ email }, { phone }] });
     if (!user) {
         throw new Error("User not found", { cause: 404 });
     }
@@ -123,7 +123,7 @@ export const forgetpassword = async (req, res, next) => {
     user.otp = otp;
     user.otpexpire = otpexpire;
     await sendmail({
-        to: email,
+        to: user.email,
         subject: "forget password",
         html: `<h1>your otp for forget password is :${otp}</h1>`
     })
@@ -132,8 +132,8 @@ export const forgetpassword = async (req, res, next) => {
 }
 // reset password
 export const resetpassword = async (req, res, next) => {
-    const { otp, email, password } = req.body;
-    const user = await User.findOne({ otp, email, otpexpire: { $gt: Date.now() } });
+    const { otp, email, phone, password } = req.body;
+    const user = await User.findOne({ otp, $or: [{ email }, { phone }], otpexpire: { $gt: Date.now() } });
     if (!user) {
         throw new Error("otp expired", { cause: 401 });
     }
@@ -148,10 +148,10 @@ export const resetpassword = async (req, res, next) => {
 export const googlelogin = async (req, res, next) => {
     const { idToken } = req.body;
     const client = new OAuth2Client("766230823603-7u5uith3ivsf8jfc4pbthedggblskv6a.apps.googleusercontent.com");
-    const ticket = await client.verifyIdToken({ idToken});
+    const ticket = await client.verifyIdToken({ idToken });
     const payload = ticket.getPayload();
     console.log(payload);
-    
+
     let userExist = await User.findOne({ email: payload.email });
     if (!userExist) {
         userExist = await User.create({
