@@ -59,8 +59,16 @@ const schema = new Schema({
         type: String,
         enum: ["local", "google"],
         default: "local"
+    },
+    imgurl: {
+        type: String
+    },
+    refreshToken: {
+        type: String
     }
 
+}, {
+    timestamps: true
 });
 schema.virtual("fullName").get(function () {
     return `${this.firstName} ${this.lastName}`;

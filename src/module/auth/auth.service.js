@@ -7,6 +7,8 @@ export const register = async (req, res, next) => {
 
     // get data from request
     const { firstName, lastName, email, password, phone, dob } = req.body;
+    // validation
+
     // user existance 
 
     const userExist = await User.findOne({
@@ -102,11 +104,24 @@ export const login = async (req, res, next) => {
     if (!user) {
         throw new Error("User not found", { cause: 404 });
     }
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = bcrypt.compare(password, user.password);
     if (!isMatch) {
         throw new Error("Invalid credentials", { cause: 401 });
     }
+    if (!user.isverifed) {
+        throw new Error("User not verfied", { cause: 401 });
+
+    }
     const token = jwt.sign({ id: user._id }, "12345678901234567890123456789012", { expiresIn: "1h" });
+    const refreshToken = jwt.sign({ id: user._id }, "12345678901234567890123456789012", { expiresIn: "7d" });
+    user.refreshToken = refreshToken;
+    await user.save();
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
     res.status(200).json({ message: "User logged in successfully", success: true, token });
 
 }
@@ -168,3 +183,34 @@ export const googlelogin = async (req, res, next) => {
     const token = jwt.sign({ id: userExist._id }, "12345678901234567890123456789012", { expiresIn: "1h" });
     res.status(200).json({ message: "User logged in successfully", success: true, token });
 }
+
+// refresh token
+export const getNewAccessToken = async (req, res, next) => {
+console.log(req.cookies);
+
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+        return res.status(401).json({ message: "No refresh token provided", success: false });
+    }
+
+    const user = await User.findOne({ refreshToken });
+    if (!user) {
+        return res.status(403).json({ message: "Invalid refresh token", success: false });
+    }
+    jwt.verify(refreshToken, "12345678901234567890123456789012", (err, payload) => {
+        if (err) {
+            return res.status(403).json({ message: "Refresh token expired or invalid", success: false });
+        }
+
+        const newAccessToken = jwt.sign(
+            { id: user._id },
+            "12345678901234567890123456789012",
+            { expiresIn: "1h" }
+        );
+
+        res.status(200).json({ accessToken: newAccessToken, success: true });
+    });
+
+
+};
