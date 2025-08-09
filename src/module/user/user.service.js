@@ -1,13 +1,10 @@
 import { User } from "../../db/model/user.model.js";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import fs from 'node:fs';
 
 // delete account
 export const deleteAccount = async (req, res, next) => {
-    const token = req.headers.authorization;
-    const decoded = jwt.verify(token, "12345678901234567890123456789012");
-    const user = await User.findByIdAndDelete(decoded.id);
+    const user = await User.findByIdAndDelete(req.user._id);
     if (!user) {
         throw new Error("User not found", { cause: 404 });
     }
@@ -16,9 +13,7 @@ export const deleteAccount = async (req, res, next) => {
 
 // edit profile 
 export const editProfile = async (req, res, next) => {
-    const token = req.headers.authorization;
-    const decoded = jwt.verify(token, "12345678901234567890123456789012");
-    const user = await User.findById(decoded.id);
+    const user = req.user;
     if (!user) {
         throw new Error("User not found", { cause: 404 });
     }
@@ -33,10 +28,8 @@ export const editProfile = async (req, res, next) => {
 
 // change password
 export const changePassword = async (req, res, next) => {
-    const token = req.headers.authorization;
-    const {password, oldPassword} = req.body;
-    const decoded = jwt.verify(token, "12345678901234567890123456789012");
-    const user = await User.findById(decoded.id);
+    const { password, oldPassword } = req.body;
+    const user = req.user;
     if (!user) {
         throw new Error("User not found", { cause: 404 });
     }
@@ -51,9 +44,7 @@ export const changePassword = async (req, res, next) => {
 
 // get user profile
 export const getUserProfile = async (req, res, next) => {
-    const token = req.headers.authorization;
-    const decoded = jwt.verify(token, "12345678901234567890123456789012");
-    const user = await User.findById(decoded.id);
+    const user = req.user;
     if (!user) {
         throw new Error("User not found", { cause: 404 });
     }
@@ -62,7 +53,6 @@ export const getUserProfile = async (req, res, next) => {
 
 // upload profile pic
 export const uploadProfilePic = async (req, res, next) => {
-    console.log(req.file);
     const user = req.user;
     if (user.imgurl) {
         fs.unlinkSync(user.imgurl);
